@@ -7,20 +7,21 @@ import pickle
 import os
 
 milk_price = 21.11 #milk price of $21.11 per cwt according to chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.ams.usda.gov/mnreports/dywweeklyreport.pdf
-breed_cost_per_day = 4 # hard-coded according to chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://afs.ca.uky.edu/files/how_much_are_you_losing_from_extra_days_open.pdf, $3 to $5 per day, I chose $4 per day, a month would be 120
+breed_cost_per_month = 11.2 # hard-coded https://www.sciencedirect.com/science/article/pii/S0022030223001145#bib20 : $120 for ED per year, 104 for TAI per year, avg to 11.2 per month
 treatment_cost_per_day = 2 # hard-coded guess from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10339984/#:~:text=The%20health%20treatment%20cost%20of,and%20usually%20increased%20with%20parity. 
 recover_rate = 0.6 # after treatment, 60% can recover
-slaughter_price =187 # according to chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.ams.usda.gov/mnreports/lsmdairycomp.pdf, $187 per cwt 
-manuture_bw = 1500 #lbs, google holstein manure BW
-replacement_cost = 2500 # hard-coded according to the figure on prelim proposal
+slaughter_price =1.49 # per kg, according to Manfei repro paper: https://www.sciencedirect.com/science/article/pii/S0022030223001145#bib66
+manuture_bw = 740.1 #kg, according to Manfei repro paper
+replacement_cost = 2000 # hard-coded according to the figure on prelim proposal
+calf_income = 50 # hard-coded according to personal guess
 woods_parameters = [[16.13, 23.61, 23.81], [0.235, 0.227, 0.244], [0.0019, 0.0032, 0.0036]] # [a], [b], and [c], each list have 3 values for 3 parity
-death_rate = [0, 2.05, 2.66, 3.72, 4.38, 4.83, 5.78, 5.92, 6.40, 6.40, 6.40, 6.40, 6.40] #https://www.sciencedirect.com/science/article/pii/S0022030208710865#fig1 table 2
+death_rate = [0, 2.05, 2.66, 3.72, 4.38, 4.83, 5.78, 5.92, 6.40, 6.40, 6.40, 6.40, 6.40] #unit: %; https://www.sciencedirect.com/science/article/pii/S0022030208710865#fig1 table 2
 disease_risk = [0, 0.1, 0.12, 0.15, 0.15, 0.2, 0.2, 0.25, 0.25, 0.25, 0.3, 0.3, 0.35] # from health to sick per parity
 preg_rate = {1: 0.4, 2: 0.4, 3: 0.3, 4: 0.3, 5: 0.25, 6: 0.25, 7: 0.2, 8: 0.2, 9: 0.15, 10: 0.15, 11: 0.1, 12: 0.1}
 parity_range = range(13)
 mim_range = range(21)
 mip_range = range(10)
-disease_range = range(2)
+disease_range = range(1)
 
 def possible_state(state):
     if not (state[0] in parity_range and state[1] in mim_range and state[2] in mip_range and state[3] in disease_range):
@@ -55,9 +56,7 @@ class CowEnv:
 
     def step(self, action):
         slaughter_income = 0
-        replacement_cost = 0
         milk_income = 0
-        calf_income = 0
         breed_cost = 0
         treatment_cost = 0
         parity, mim, mip, disease = self.state
@@ -66,6 +65,7 @@ class CowEnv:
             slaughter_income = self.slaughter(parity, disease) 
             self.state = (0, 0, 9, 0) # replaced by a new springer
             reward = slaughter_income - replacement_cost
+            print(slaughter_income, replacement_cost)
         
         else: 
             next_parity = parity # by default, parity does not change, unless mip == 9
@@ -76,6 +76,7 @@ class CowEnv:
 
             # death
             if self.death(parity, disease): # died
+                print("died")
                 slaughter_income = 0 # it's 0 because it is a died cow
                 self.state = (0, 0, 9, 0) # replaced by a new springer
                 reward = slaughter_income - replacement_cost
@@ -86,20 +87,19 @@ class CowEnv:
                     self.parameter_a, self.parameter_b, self.parameter_c = self.assign_woods_parameters(parity)
                     milk_production = self.calc_integral_wood_curve(dim, dim+30, self.parameter_a, self.parameter_b, self.parameter_c)
                     milk_income = milk_production*2.2/100 * milk_price
-                    # print(parity, mim, milk_production_avg_day, milk_income)
+                    print("milk:", milk_production, milk_income)
                     next_mim = mim + 1
 
                 # pregnancy status
                 if mip == 7 or mip == 8: # dry
                     next_mim = 0
                 if mip == 9: # calving
-                    calf_income = 1000 # hard-coded according to personal guess
                     next_parity = parity+1
                     next_mim = 1
                     next_mip = 0
                 elif mip == 0: # breeding
                     if mim>=3:
-                        breed_cost = breed_cost_per_day * 30 
+                        breed_cost = breed_cost_per_month 
                         if self.breed(parity, disease) == True:
                             next_mip = 1
                         else: 
@@ -107,23 +107,24 @@ class CowEnv:
                 else: # keep pregnancy
                     next_mip = mip + 1
 
-                # Disease affect slauter income (in slaughter() function), milk income, breed success (in breed() function), and treatment_cost 
-                if disease == 1: # when the cow is sick
-                    milk_income *= 0.9
-                    treatment_cost = treatment_cost_per_day * 30
-                    if random.uniform(0, 1) < recover_rate:
-                        next_disease = 0 # recovered from disease
-                    else:
-                        next_disease = 1 # remain sick
-                else:
-                    if random.uniform(0, 1) < disease_risk[parity]:
-                        next_disease = 1 # become sick
-                    else:
-                        next_disease = 0 #remain healthy
+                # # Disease affect slauter income (in slaughter() function), milk income, breed success (in breed() function), and treatment_cost 
+                # if disease == 1: # when the cow is sick
+                #     milk_income *= 0.9
+                #     treatment_cost = treatment_cost_per_day * 30
+                #     if random.uniform(0, 1) < recover_rate:
+                #         next_disease = 0 # recovered from disease
+                #     else:
+                #         next_disease = 1 # remain sick
+                # else:
+                #     if random.uniform(0, 1) < disease_risk[parity]:
+                #         next_disease = 1 # become sick
+                #     else:
+                #         next_disease = 0 #remain healthy
                     
 
                 self.state = (next_parity, next_mim, next_mip, next_disease)
                 reward = milk_income + calf_income - breed_cost - treatment_cost
+        print("one reward:", reward)
 
         # print(slaughter_income, replacement_cost, milk_income, calf_income, breed_cost)
 
@@ -165,17 +166,17 @@ class CowEnv:
             bw = 0.92 * manuture_bw
         else:
             bw = manuture_bw
-        return bw/100 * slaughter_price if disease == 0 else bw/100 * slaughter_price * 0.7 #hard-code: discounted to 70% for sick cows
+        return bw * slaughter_price if disease == 0 else bw * slaughter_price * 0.7 #hard-code: discounted to 70% for sick cows
 
     def death(self, parity, disease):
         random_num = random.uniform(0, 1)
         if disease == 0: #healthy
-            if random_num < death_rate[parity]:
+            if random_num < death_rate[parity]/100:
                 return True
             else:
                 return False
         else: #sick, twice of the normal dealth rate
-            if random_num < 2*death_rate[parity]:
+            if random_num < 2*death_rate[parity]/100:
                 return True
             else:
                 return False
@@ -194,6 +195,7 @@ def q_learning(env, q_table, rewards_per_episode, num_episodes, max_steps, alpha
             else:
                 action = max(q_table[state], key=q_table[state].get)  # Exploit
                 
+            print(state, action)
             next_state, reward = env.step(action)
             total_reward += reward
 
@@ -248,7 +250,7 @@ print("q_table:", len(q_table))
 print("rewards_per_episode:", len(rewards_per_episode))
 print(q_table, rewards_per_episode, epsilon)
 
-q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=10000, max_steps = 60)  # Increase number of episodes for better learning
+q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=100000, max_steps = 60)  # Increase number of episodes for better learning
 
 # Save the learned Q-table
 save_q_table(q_table, rewards_per_episode, epsilon, q_table_filename)
