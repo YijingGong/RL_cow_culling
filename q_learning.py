@@ -81,7 +81,7 @@ q_table, rewards_per_episode, epsilon = load_or_create_q_table(q_table_filename,
 # print(q_table, rewards_per_episode, epsilon)
 
 start_time = time.time()
-q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=1000000, max_steps = 60)  # Increase number of episodes for better learning
+q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=100, max_steps = 60)  # Increase number of episodes for better learning
 end_time = time.time()
 
 # Save the learned Q-table

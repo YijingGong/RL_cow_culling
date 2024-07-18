@@ -50,7 +50,7 @@ class CowEnv:
             slaughter_income = self.slaughter(parity, disease) 
             self.state = (0, 0, 9, 0) # replaced by a new springer
             reward = slaughter_income - replacement_cost
-            # print(">cull")
+            # print(">cull", parity, mim, mip, disease)
             # print(slaughter_income, replacement_cost)
         
         else: 
@@ -62,7 +62,7 @@ class CowEnv:
 
             # death
             if self.death(parity, disease): # died
-                print(">keep died")
+                # print(">keep died")
                 slaughter_income = 0 # it's 0 because it is a died cow
                 self.state = (0, 0, 9, 0) # replaced by a new springer
                 reward = slaughter_income - replacement_cost
@@ -150,7 +150,7 @@ class CowEnv:
             return True if random_num < sick_success_rate else False 
     
     def slaughter(self, parity, disease): 
-        if parity == 0 or 1:
+        if parity == 0 or parity == 1:
             bw = 0.82 * manuture_bw
         elif parity == 2:
             bw = 0.92 * manuture_bw

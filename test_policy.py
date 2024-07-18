@@ -45,15 +45,15 @@ def test_policy(policy_q_table, rep_num):
         print(f"Test rep: {i}, Total Reward in Test: {total_reward}")
 
 # peek policy
-peek_policy('q_table.pkl')
+# peek_policy('q_table.pkl')
 
-# q_table_filename = 'q_table.pkl'
-# q_table, rewards_per_episode, epsilon = load_q_table(q_table_filename)
-# print("q_table len:", len(q_table))
-# print("rewards_per_episode len:", len(rewards_per_episode))
-# print("epsilon len:", epsilon)
+q_table_filename = 'q_table_1000000.pkl'
+q_table, rewards_per_episode, epsilon = load_q_table(q_table_filename)
+print("q_table len:", len(q_table))
+print("rewards_per_episode len:", len(rewards_per_episode))
+print("epsilon len:", epsilon)
 
-# test_start_time = time.time()
-# test_policy(q_table, 10)
-# test_end_time = time.time()
-# print(f"Time taken for testing: {test_end_time - test_start_time} seconds")
+test_start_time = time.time()
+test_policy(q_table, 10)
+test_end_time = time.time()
+print(f"Time taken for testing: {test_end_time - test_start_time} seconds")
