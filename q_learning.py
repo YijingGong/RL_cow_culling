@@ -3,6 +3,7 @@ import random
 import matplotlib.pyplot as plt
 import pickle
 import os
+import time
 import utility
 import cow_environment
 
@@ -20,10 +21,10 @@ def q_learning(env, q_table, rewards_per_episode, num_episodes, max_steps, alpha
         while steps < max_steps:
             if random.uniform(0, 1) < epsilon:
                 action = random.choice(env.actions)  # Explore
-                print("current state", state, 'Explore', action)
+                # print("current state", state, 'Explore', action)
             else:
                 action = max(q_table[state], key=q_table[state].get)  # Exploit
-                print("current state", state, 'Exploit', action)
+                # print("current state", state, 'Exploit', action)
                 
             next_state, reward = env.step(action)
             total_reward += reward
@@ -75,11 +76,13 @@ env = cow_environment.CowEnv(parity_range, mim_range, mip_range, disease_range)
 # Load existing Q-table or create a new one
 q_table_filename = 'q_table.pkl'
 q_table, rewards_per_episode, epsilon = load_or_create_q_table(q_table_filename, env)
-print("q_table:", len(q_table))
-print("rewards_per_episode:", len(rewards_per_episode))
-print(q_table, rewards_per_episode, epsilon)
+# print("q_table:", len(q_table))
+# print("rewards_per_episode:", len(rewards_per_episode))
+# print(q_table, rewards_per_episode, epsilon)
 
-q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=50000, max_steps = 60)  # Increase number of episodes for better learning
+start_time = time.time()
+q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=1000000, max_steps = 60)  # Increase number of episodes for better learning
+end_time = time.time()
 
 # Save the learned Q-table
 save_q_table(q_table, rewards_per_episode, epsilon, q_table_filename)
@@ -103,23 +106,9 @@ def plot_rewards(rewards, window=100):
     plt.ylabel('Total Reward')
     plt.title('Total Reward per Episode and Moving Average')
     plt.legend()
-    plt.show()
+    # plt.show()
+    plt.savefig('figure.png')
+    plt.close()
 
 plot_rewards(rewards_per_episode)
-
-print("====test policy=====")
-# Test the learned policy
-state = (0,0,9,0)  # Start a new episode for testing
-total_reward = 0
-steps = 0
-max_steps = 60
-
-while steps < max_steps:
-    env.render()
-    action = max(q_table[state], key=q_table[state].get)
-    next_state, reward = env.step(action)
-    total_reward += reward
-    state = next_state
-    steps += 1
-
-print(f"Total Reward in Test: {total_reward}")
+print(f"Time taken for training: {end_time - start_time} seconds")
