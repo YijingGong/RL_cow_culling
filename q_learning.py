@@ -6,13 +6,14 @@ import os
 import time
 import utility
 import cow_environment
+import cow_environment_no_sick
 
 parity_range = range(13)
 mim_range = range(21)
 mip_range = range(10)
 disease_range = range(2)
 
-def q_learning(env, q_table, rewards_per_episode, num_episodes, max_steps, alpha=0.1, gamma=0.99, epsilon=1.0, epsilon_decay=0.999, min_epsilon=0.3):
+def q_learning(env, q_table, rewards_per_episode, num_episodes, max_steps, alpha=0.1, gamma=0.99, epsilon=1.0, epsilon_decay=0.999, min_epsilon=0.1):
     for episode in range(num_episodes):
         state = env.reset()  # Start a new episode
         total_reward = 0
@@ -64,6 +65,9 @@ def load_or_create_q_table(filename, env):
         for parity in parity_range:
             for mim in mim_range:
                 for mip in mip_range:
+                    state = (parity, mim, mip)
+                    # if utility.possible_state_no_sick(state, parity_range, mim_range, mip_range):
+                    #         q_table[state] = {action: 0 for action in env.actions}
                     for disease in disease_range:
                         state = (parity, mim, mip, disease)
                         if utility.possible_state(state, parity_range, mim_range, mip_range, disease_range):
@@ -73,8 +77,10 @@ def load_or_create_q_table(filename, env):
 
 # Initialize the environment with individual features and train the agent
 env = cow_environment.CowEnv(parity_range, mim_range, mip_range, disease_range)
+# env = cow_environment_no_sick.CowEnv(parity_range, mim_range, mip_range)    
+
 # Load existing Q-table or create a new one
-q_table_filename = 'q_table.pkl'
+q_table_filename = 'outputs/q_table.pkl'
 q_table, rewards_per_episode, epsilon = load_or_create_q_table(q_table_filename, env)
 # print("q_table:", len(q_table))
 # print("rewards_per_episode:", len(rewards_per_episode))
@@ -107,7 +113,7 @@ def plot_rewards(rewards, window=100):
     plt.title('Total Reward per Episode and Moving Average')
     plt.legend()
     # plt.show()
-    plt.savefig('figure.png')
+    plt.savefig('outputs/figure.png')
     plt.close()
 
 plot_rewards(rewards_per_episode)
