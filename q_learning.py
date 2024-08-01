@@ -6,6 +6,7 @@ import os
 import time
 import utility
 import cow_environment
+import cow_environment2
 import cow_environment_no_sick
 
 parity_range = range(13)
@@ -70,13 +71,15 @@ def load_or_create_q_table(filename, env):
                     #         q_table[state] = {action: 0 for action in env.actions}
                     for disease in disease_range:
                         state = (parity, mim, mip, disease)
-                        if utility.possible_state(state, parity_range, mim_range, mip_range, disease_range):
+                        if utility.possible_state2(state, parity_range, mim_range, mip_range, disease_range):
                             q_table[state] = {action: 0 for action in env.actions}
+        # print(q_table)
+        # print(len(q_table))
         return q_table, rewards_per_episode, epsilon
 
 
 # Initialize the environment with individual features and train the agent
-env = cow_environment.CowEnv(parity_range, mim_range, mip_range, disease_range)
+env = cow_environment2.CowEnv(parity_range, mim_range, mip_range, disease_range)
 # env = cow_environment_no_sick.CowEnv(parity_range, mim_range, mip_range)    
 
 # Load existing Q-table or create a new one
@@ -87,7 +90,7 @@ q_table, rewards_per_episode, epsilon = load_or_create_q_table(q_table_filename,
 # print(q_table, rewards_per_episode, epsilon)
 
 start_time = time.time()
-q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=100, max_steps = 60)  # Increase number of episodes for better learning
+q_table, rewards_per_episode, epsilon = q_learning(env, q_table = q_table,rewards_per_episode = rewards_per_episode, epsilon = epsilon, num_episodes=1000000, max_steps = 60)  # Increase number of episodes for better learning
 end_time = time.time()
 
 # Save the learned Q-table
